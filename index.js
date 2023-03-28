@@ -10,7 +10,10 @@ const app = express();
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const shortUrlSchema = new mongoose.Schema({
   original_url: String,
@@ -25,43 +28,47 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use('/public', express.static(`${process.cwd()}/public`));
 
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
 // Your first API endpoint
-app.get('/api/hello', function(req, res) {
+app.get('/api/hello', function (req, res) {
   res.json({ greeting: 'hello API' });
 });
 
 app.post('/api/shorturl', (req, res) => {
-  dns.lookup(new URL(req.body.url).hostname, { all: true }, async (error, addresses) => {
-    if (!error) {
-      try {
-        const data = await ShortUrl.findOne({ original_url: req.body.url })
-        if (data) {
-          res.json({
-            original_url: data.original_url,
-            short_url: data.short_url,
-          })
-        } else {
-          const dataCreate = await ShortUrl.create({
-            original_url: req.body.url,
-            short_url: shortid.generate(),
-          });
-          res.json({
-            original_url: dataCreate.original_url,
-            short_url: dataCreate.short_url,
-          })
+  dns.lookup(
+    new URL(req.body.url).hostname,
+    { all: true },
+    async (error, addresses) => {
+      if (!error) {
+        try {
+          const data = await ShortUrl.findOne({ original_url: req.body.url });
+          if (data) {
+            res.json({
+              original_url: data.original_url,
+              short_url: data.short_url,
+            });
+          } else {
+            const dataCreate = await ShortUrl.create({
+              original_url: req.body.url,
+              short_url: shortid.generate(),
+            });
+            res.json({
+              original_url: dataCreate.original_url,
+              short_url: dataCreate.short_url,
+            });
+          }
+        } catch (error) {
+          res.json({ error: 'Server error' });
         }
-      } catch (error) {
-        res.json({  error: 'Server error' })
+      } else {
+        res.json({ error: 'invalid url' });
       }
-    } else {
-      res.json({ error: 'invalid url' })
     }
-  });
-})
+  );
+});
 
 app.get('/api/shorturl/:short_url', async (req, res) => {
   try {
@@ -69,13 +76,13 @@ app.get('/api/shorturl/:short_url', async (req, res) => {
     if (data) {
       res.redirect(data.original_url);
     } else {
-      res.json({ error: 'URL not found'});
+      res.json({ error: 'URL not found' });
     }
   } catch (error) {
-    res.json({ error: 'Server error' })
+    res.json({ error: 'Server error' });
   }
 });
 
-app.listen(port, function() {
+app.listen(port, function () {
   console.log(`Listening on port ${port}`);
 });
